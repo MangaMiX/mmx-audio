@@ -15,14 +15,14 @@ class MangatubeExtractor:
         youtube_url = 'https://www.youtube.com/'
         playlist_prefix = f'{youtube_url}playlist?list='
 
-        format_query = anime.replace(' ', '+')
+        format_query = anime.replace(' ', '+') + '+OST'
         status, response = await HttpUtils.send(method='GET', url=f'{youtube_url}results?search_query={format_query}')
 
         match_playlist = re.search(r'playlist\?list=(\S*?)"', response.decode())
         if match_playlist:
             playlist_full_url = f'{playlist_prefix}{match_playlist.group(1)}'
             playlist = Playlist(url=playlist_full_url)
-            self.logger.info(f'Playlist: {playlist.title}, number of ost: {playlist.length}')
+            self.logger.info(f'Anime: "{anime}" Playlist: "{playlist.title}", number of ost: {playlist.length}, query: "{format_query}"')
 
             index = 1
             for video in playlist.videos:
@@ -35,4 +35,4 @@ class MangatubeExtractor:
             #     print(video.title)
             # video.streams.get_audio_only().stream_to_buffer()
         else:
-            self.logger.debug(f'no playlist found for anime "{anime}"...')
+            self.logger.debug(f'no playlist found for anime "{anime}", query: "{format_query}"')
