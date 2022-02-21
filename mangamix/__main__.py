@@ -20,7 +20,6 @@ async def run():
         if len(anime_names) > 0:
             for anime_name in anime_names:
                 await mangatube_extractor.search(anime_name)
-                found_anime = False
         else:
             found_anime = False
 
