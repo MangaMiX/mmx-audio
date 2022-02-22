@@ -14,14 +14,14 @@ logger = logging.getLogger(f'{__name__}')
 async def run():
     mangasearch = Mangasearch()
     mangatube_extractor = MangatubeExtractor()
-    found_anime = True
-    while found_anime:
+    while True:
         anime_names = await mangasearch.get_next_animes()
         if len(anime_names) > 0:
             for anime_name in anime_names:
                 await mangatube_extractor.search(anime_name)
         else:
-            found_anime = False
+            await asyncio.sleep(2)
+            mangasearch.reset_index()
 
 if __name__ == '__main__':
     if platform.system().lower().find('windows') != -1:  # For windows compatibility
