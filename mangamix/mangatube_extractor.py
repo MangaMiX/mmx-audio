@@ -36,14 +36,15 @@ class MangatubeExtractor:
                         playlist_full_url = f'{playlist_prefix}{match_playlist.group(1)}'
                         playlist = Playlist(url=playlist_full_url)
                         if self.__valid(playlist.title):
-                            self.logger.info(f'Anime: "{anime}" Playlist: "{playlist.title}", number of ost: {playlist.length}, query: "{format_query}"')
+                            self.logger.info(f'Anime: "{anime}" Playlist: "{playlist.title}", '
+                                             f'number of ost: {playlist.length}, query: "{format_query}"')
                             await self.__extract_audio(anime, playlist.videos)
                             break
                         else:
                             self.logger.debug(f'Invalid playlist: "{playlist.title}" for anime "{anime}", query: "{format_query}"')
                     else:
                         self.logger.debug(f'no playlist found for anime "{anime}", query: "{format_query}"')
-            except (KeyError, TimeoutError) as e:
+            except (KeyError, TimeoutError, ValueError) as e:
                 self.logger.error(f'An exception of type {type(e)} with arguments: {e.args} occurred. '
                                   f'Anime "{anime}", query: "{format_query}".')
 
@@ -58,7 +59,7 @@ class MangatubeExtractor:
 
     def __valid(self, title: str):
         for query_keyword in self.query_keywords:
-            if query_keyword in title.lower():
+            if query_keyword in title.lower().replace(' ', ''):
                 return True
         return False
 
