@@ -8,6 +8,7 @@ from mangamix.settings import ES_INDEX, ES_HOST, ES_USER, ES_PASSWORD
 
 ES_SIZE = 10
 
+
 class Mangasearch:
 
     def __init__(self, start_index=-ES_SIZE):
@@ -31,5 +32,6 @@ class Mangasearch:
         self.num += ES_SIZE
         return self.num
 
-    def get_anime_names(self, hits):
+    @staticmethod
+    def get_anime_names(hits):
         return list(map(lambda hit: hit['_source']['name'], hits))
