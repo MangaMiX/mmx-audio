@@ -5,6 +5,8 @@ import re
 from minio import Minio
 
 from pytube import Playlist
+
+from mangamix.mangasearch import Mangasearch
 from mangamix.settings import S3_ACCESS_KEY, S3_BUCKET, S3_HOST, S3_SECRET_KEY
 
 from utils.http_utils import HttpUtils
@@ -16,6 +18,7 @@ class MangatubeExtractor:
         self.s3 = Minio(S3_HOST, S3_ACCESS_KEY, S3_SECRET_KEY, secure=False)
         self.logger = logging.getLogger(f'{__name__}.{__class__.__name__}')
         self.query_keywords = ['ost', 'soundtrack', 'music']
+        self.mangasearch = Mangasearch()
 
     async def search(self, anime: str):
         youtube_url = 'https://www.youtube.com/'
@@ -38,7 +41,8 @@ class MangatubeExtractor:
                         for video in playlist.videos:
                             if index > 10: # Store only 10 soundtracks for the moment
                                 break
-                            self.store_audio(anime, video)
+                            s3_path = self.store_audio(anime, video)
+                            await self.mangasearch.update_audio(anime, s3_path)
                             index += 1
                         break
                     else:
@@ -52,15 +56,17 @@ class MangatubeExtractor:
                 return True
         return False
 
-    def store_audio(self, anime: str, video):
+    def store_audio(self, anime: str, video) -> str:
         buffer = BytesIO()
-        object_path = f'audio/{MangatubeExtractor.hash_name(anime)}/{MangatubeExtractor.hash_name(video.title)}.mp4'
+        s3_path = f'audio/{MangatubeExtractor.hash_name(anime)}/{MangatubeExtractor.hash_name(video.title)}.mp4'
         video.streams.get_audio_only().stream_to_buffer(buffer)
         buffer.seek(0)
         filename = MangatubeExtractor.encode_filename(video.title)
-        self.s3.put_object(bucket_name=S3_BUCKET, object_name=object_path, data=buffer, length=buffer.getbuffer().nbytes, metadata={"filename": {filename}})
-        self.logger.debug(f'Anime: "{anime}", Audio: "{video.title}" stored in s3. (path: "{object_path}")')
+        self.s3.put_object(bucket_name=S3_BUCKET, object_name=s3_path, data=buffer,
+                           length=buffer.getbuffer().nbytes, metadata={"filename": {filename}})
+        self.logger.debug(f'Anime: "{anime}", Audio: "{video.title}" stored in s3. (path: "{s3_path}")')
         buffer.close()
+        return s3_path
 
     @staticmethod
     def encode_filename(filename):

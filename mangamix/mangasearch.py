@@ -1,3 +1,4 @@
+import hashlib
 import logging
 
 import elastic_transport
@@ -19,19 +20,41 @@ class Mangasearch:
     async def get_next_animes(self) -> list[str]:
         self.logger.info(f'Try to get animes')
         try:
-            response = await self.es.search(index=ES_INDEX, size=ES_SIZE, from_=self.get_anime_index())
+            response = await self.es.search(index=ES_INDEX, size=ES_SIZE, from_=self.__get_anime_index())
             hits = response.body['hits']['hits']
             self.logger.info(f'Found {len(hits)} animes from ES')
             if len(hits) > 0:
-                return self.get_anime_names(hits)
+                return Mangasearch.__get_anime_names(hits)
         except (elastic_transport.ConnectionError, elasticsearch.AuthenticationException) as e:
             self.logger.warning(e)
         return []
+
+    async def update_audio(self, anime: str, audio_url: str):
+        upscript = {
+            'script': {
+                'source': 'if (!ctx._source.containsKey("audio")) ctx._source.audio = [];'
+                          'if (!ctx._source.audio.contains(params.value)) ctx._source.audio.add(params.value)',
+                'params': {
+                    'value': audio_url
+                }
+            }
+        }
+        try:
+            anime_id = Mangasearch.hash_name(anime)
+            response = await self.es.update(index=ES_INDEX, id=anime_id, body=upscript)
+            self.logger.debug(response)
+            self.logger.info(f'ES Document for anime "{anime}" (id: "{anime_id}") updated')
+        except (elastic_transport.ConnectionError, elasticsearch.AuthenticationException) as e:
+            self.logger.warning(e)
     
-    def get_anime_index(self):
+    def __get_anime_index(self):
         self.num += ES_SIZE
         return self.num
 
     @staticmethod
-    def get_anime_names(hits):
+    def hash_name(name: str):
+        return hashlib.sha256(name.encode('utf-8')).hexdigest()
+
+    @staticmethod
+    def __get_anime_names(hits):
         return list(map(lambda hit: hit['_source']['name'], hits))
