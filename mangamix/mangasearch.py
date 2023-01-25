@@ -18,16 +18,15 @@ class Mangasearch:
     async def get_next_animes(self) -> list[str]:
         if len(MMX_ANIMES) > 0:
             return MMX_ANIMES
-        else:
-            self.logger.info(f'Try to get animes')
-            try:
-                response = await self.es.search(index=ES_INDEX, size=MMX_SEARCH_SIZE, from_=self.__get_anime_index())
-                hits = response.body['hits']['hits']
-                self.logger.info(f'Found {len(hits)} animes from ES')
-                if len(hits) > 0:
-                    return Mangasearch.__get_anime_names(hits)
-            except (elastic_transport.ConnectionError, elasticsearch.AuthenticationException) as e:
-                self.logger.warning(e)
+        self.logger.info(f'Try to get animes')
+        try:
+            response = await self.es.search(index=ES_INDEX, size=MMX_SEARCH_SIZE, from_=self.__get_anime_index())
+            hits = response.body['hits']['hits']
+            self.logger.info(f'Found {len(hits)} animes from ES')
+            if len(hits) > 0:
+                return Mangasearch.__get_anime_names(hits)
+        except (elastic_transport.ConnectionError, elasticsearch.AuthenticationException) as e:
+            self.logger.warning(e)
         return []
 
     async def update_audio(self, anime: str, audio_url: str):
